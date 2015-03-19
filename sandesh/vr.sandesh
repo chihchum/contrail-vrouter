@@ -253,4 +253,7 @@ buffer sandesh vr_drop_stats_req {
     46: i64             vds_arp_no_route;
     47: i64             vds_l2_no_route;
     48: i64             vds_arp_reply_no_route;
+    49: i64             vds_ring_limit_exceeded;
+    50: i64             vds_vhost_burst_fail;
+    51: i64             vds_ring_burst_fail;
 }

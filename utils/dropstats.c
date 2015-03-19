@@ -86,6 +86,16 @@ vr_drop_stats_req_process(void *s_req)
             stats->vds_flow_queue_limit_exceeded);
     printf("\n");
 
+    printf("Ring Limit Exceeded           %" PRIu64 "\n",
+            stats->vds_ring_limit_exceeded);
+    printf("Ring Burst Fail               %" PRIu64 "\n",
+            stats->vds_ring_burst_fail);
+    printf("\n");
+
+    printf("Vhost Burst Fail              %" PRIu64 "\n",
+            stats->vds_vhost_burst_fail);
+    printf("\n");
+
     printf("Discards                      %" PRIu64 "\n",
             stats->vds_discard);
     printf("TTL Exceeded                  %" PRIu64 "\n",

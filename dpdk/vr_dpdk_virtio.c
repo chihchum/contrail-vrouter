@@ -788,7 +788,7 @@ vr_dpdk_virtio_enq_pkts_to_phys_lcore(struct vr_dpdk_queue *rx_queue,
                 __func__, npkts, vq_pring);
     nb_enq = rte_ring_sp_enqueue_burst(vq_pring, (void **) pkt_arr, npkts);
     for ( ; nb_enq < npkts; nb_enq++)
-        vr_pfree(pkt_arr[nb_enq], VP_DROP_INTERFACE_DROP);
+        vr_pfree(pkt_arr[nb_enq], VP_DROP_RING_BURST_FAIL);
 
     return;
 }

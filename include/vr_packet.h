@@ -171,7 +171,10 @@
 #define VP_DROP_ARP_NO_ROUTE                42
 #define VP_DROP_L2_NO_ROUTE                 43
 #define VP_DROP_ARP_REPLY_NO_ROUTE          44
-#define VP_DROP_MAX                         45
+#define VP_DROP_RING_LIMIT_EXCEEDED         45
+#define VP_DROP_VHOST_BURST_FAIL            46
+#define VP_DROP_RING_BURST_FAIL             47
+#define VP_DROP_MAX                         48
 
 
 struct vr_drop_stats {
@@ -220,6 +223,9 @@ struct vr_drop_stats {
     uint64_t vds_arp_no_route;
     uint64_t vds_l2_no_route;
     uint64_t vds_arp_reply_no_route;
+    uint64_t vds_ring_limit_exceeded;
+    uint64_t vds_vhost_burst_fail;
+    uint64_t vds_ring_burst_fail;
 
 };
 

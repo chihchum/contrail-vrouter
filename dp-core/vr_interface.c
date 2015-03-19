@@ -27,7 +27,6 @@ static mac_response_t vm_mac_request(struct vr_interface *, struct vr_packet *,
 void vif_attach(struct vr_interface *);
 void vif_detach(struct vr_interface *);
 int vr_gro_vif_add(struct vrouter *, unsigned int, char *, unsigned short);
-struct vr_interface_stats *vif_get_stats(struct vr_interface *, unsigned short);
 struct vr_interface *__vrouter_get_interface_os(struct vrouter *, unsigned int);
 
 extern struct vr_host_interface_ops *vr_host_interface_init(void);

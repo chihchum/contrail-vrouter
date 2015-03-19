@@ -140,8 +140,7 @@ send_burst(struct dpdk_knidev_writer *p)
     nb_tx = rte_kni_tx_burst(p->kni, p->tx_buf, p->tx_buf_count);
 
     for ( ; nb_tx < p->tx_buf_count; nb_tx++)
-        /* TODO: a separate counter for this drop */
-        vr_dpdk_pfree(p->tx_buf[nb_tx], VP_DROP_INTERFACE_DROP);
+        vr_dpdk_pfree(p->tx_buf[nb_tx], VP_DROP_VHOST_BURST_FAIL);
 
     p->tx_buf_count = 0;
 }
