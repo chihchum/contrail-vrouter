@@ -1856,6 +1856,7 @@ vr_interface_make_req(vr_interface_req *req, struct vr_interface *intf, short lc
     req->vifr_opackets = 0;
     req->vifr_oerrors = 0;
     req->vifr_enqpackets = 0;
+    req->vifr_deqpackets = 0;
 
     if(req->vifr_lcore == -1) {
         for (i = 0; i < vr_num_cpus; i++) {
@@ -1867,6 +1868,7 @@ vr_interface_make_req(vr_interface_req *req, struct vr_interface *intf, short lc
             req->vifr_opackets += stats->vis_opackets;
             req->vifr_oerrors += stats->vis_oerrors;
             req->vifr_enqpackets += stats->vis_enqpackets;
+            req->vifr_deqpackets += stats->vis_deqpackets;
         }
     } else {
         stats = vif_get_stats(intf, req->vifr_lcore);
@@ -1877,6 +1879,7 @@ vr_interface_make_req(vr_interface_req *req, struct vr_interface *intf, short lc
         req->vifr_opackets = stats->vis_opackets;
         req->vifr_oerrors = stats->vis_oerrors;
         req->vifr_enqpackets = stats->vis_enqpackets;
+        req->vifr_deqpackets = stats->vis_deqpackets;
     }
 
     req->vifr_speed = -1;

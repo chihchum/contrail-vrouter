@@ -65,22 +65,23 @@ buffer sandesh vr_interface_req {
     15: i64         vifr_opackets;
     16: i64         vifr_oerrors;
     17: i64         vifr_enqpackets;
-    18: i32         vifr_ref_cnt;
-    19: i32         vifr_marker;
-    20: list<byte>  vifr_mac;
-    21: i32         vifr_ip;
-    22: i32         vifr_context;
-    23: i16         vifr_mir_id;
-    24: i32         vifr_speed;
-    25: i32         vifr_duplex;
-    26: i16         vifr_vlan_id;
-    27: i32         vifr_parent_vif_idx;
-    28: i16         vifr_nh_id;
-    29: i32         vifr_cross_connect_idx;
-    30: list<byte>  vifr_src_mac;
-    31: i32         vifr_bridge_idx;
-    32: i16         vifr_ovlan_id;
-    33: byte        vifr_transport;
+    18: i64         vifr_deqpackets;
+    19: i32         vifr_ref_cnt;
+    20: i32         vifr_marker;
+    21: list<byte>  vifr_mac;
+    22: i32         vifr_ip;
+    23: i32         vifr_context;
+    24: i16         vifr_mir_id;
+    25: i32         vifr_speed;
+    26: i32         vifr_duplex;
+    27: i16         vifr_vlan_id;
+    28: i32         vifr_parent_vif_idx;
+    29: i16         vifr_nh_id;
+    30: i32         vifr_cross_connect_idx;
+    31: list<byte>  vifr_src_mac;
+    32: i32         vifr_bridge_idx;
+    33: i16         vifr_ovlan_id;
+    34: byte        vifr_transport;
 }
 
 buffer sandesh vr_vxlan_req {

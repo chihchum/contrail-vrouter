@@ -348,7 +348,8 @@ vr_interface_req_process(void *s)
 
     if (req->vifr_type == VIF_TYPE_VIRTUAL) {
         vr_interface_print_head_space();
-        printf("Enqueued packets:%" PRId64" \n", req->vifr_enqpackets);
+        printf("Enqueued packets:%" PRId64"  Dequeued packets:%" PRId64 "  \n",
+                req->vifr_enqpackets, req->vifr_deqpackets);
     }
     printf("\n");
 

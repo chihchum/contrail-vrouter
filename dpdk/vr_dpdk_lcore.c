@@ -527,6 +527,7 @@ dpdk_lcore_fwd_io(struct vr_dpdk_lcore *lcore)
     uint32_t nb_pkts;
     int i;
     struct vr_dpdk_ring_to_push *rtp;
+    struct vr_interface_stats *stats;
     uint16_t nb_rtp;
     struct rte_ring *ring;
 
@@ -555,6 +556,11 @@ dpdk_lcore_fwd_io(struct vr_dpdk_lcore *lcore)
             total_pkts += nb_pkts;
 
             if (likely(rtp->rtp_tx_queue && rtp->rtp_tx_queue->txq_ops.f_tx)) {
+                stats = vif_get_stats(rtp->rtp_tx_queue->q_vif,
+                    ((vr_dpdk_virtioq_t *)(rtp->rtp_tx_queue->q_queue_h))->vdv_pring_dst_lcore_id);
+                for (i = 0; i < nb_pkts; i++)
+                    stats->vis_deqpackets++;
+
                 /* push packets to the TX queue */
                 /* TODO: use f_tx_bulk instead */
                 for (i = 0; i < nb_pkts; i++) {
