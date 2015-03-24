@@ -345,6 +345,11 @@ vr_interface_req_process(void *s)
     printf("TX packets:%" PRId64 "  bytes:%" PRId64 " errors:%" PRId64 "\n",
             req->vifr_opackets,
             req->vifr_obytes, req->vifr_oerrors);
+
+    if (req->vifr_type == VIF_TYPE_VIRTUAL) {
+        vr_interface_print_head_space();
+        printf("Enqueued packets:%" PRId64" \n", req->vifr_enqpackets);
+    }
     printf("\n");
 
     if (list_set || stats_set)

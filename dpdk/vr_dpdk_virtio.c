@@ -779,14 +779,22 @@ vr_dpdk_virtio_enq_pkts_to_phys_lcore(struct vr_dpdk_queue *rx_queue,
 {
     vr_dpdk_virtioq_t *vq;
     struct rte_ring *vq_pring;
-    int nb_enq;
+    int nb_enq, i;
+    unsigned vq_lcore;
+    struct vr_interface_stats *stats;
 
     vq = (vr_dpdk_virtioq_t *) rx_queue->q_queue_h;
     vq_pring = vq->vdv_pring;
+    vq_lcore = vq->vdv_pring_dst_lcore_id;
 
     RTE_LOG(DEBUG, VROUTER, "%s: enqueue %u pakets to ring %p\n",
                 __func__, npkts, vq_pring);
     nb_enq = rte_ring_sp_enqueue_burst(vq_pring, (void **) pkt_arr, npkts);
+
+    stats = vif_get_stats(rx_queue->q_vif, vq_lcore);
+    for (i = 0; i < nb_enq; i++)
+        stats->vis_enqpackets++;
+
     for ( ; nb_enq < npkts; nb_enq++)
         vr_pfree(pkt_arr[nb_enq], VP_DROP_RING_BURST_FAIL);
 
