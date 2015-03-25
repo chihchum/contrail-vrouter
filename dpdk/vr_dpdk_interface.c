@@ -749,7 +749,7 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
         if (ret != 0) {
             stats = vif_get_stats(vif, pkt->vp_cpu);
             stats->vis_oerrors++;
-            vr_pfree(pkt, VP_DROP_RING_LIMIT_EXCEEDED);
+            vr_pfree(pkt, VP_DROP_ENQUEUE_FAIL);
             return -1;
         }
 #ifdef VR_DPDK_TX_PKT_DUMP

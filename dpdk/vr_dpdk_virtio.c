@@ -445,7 +445,7 @@ dpdk_virtio_to_vm_flush(void *arg)
         desc = &vq->vdv_desc[next_desc_idx];
         buf_addr = vr_dpdk_guest_phys_to_host_virt(vq, desc->addr);
         if (buf_addr == NULL) {
-            vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_INTERFACE_DROP);
+            vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_DEQUEUE_FAIL);
             continue;
         }
 
@@ -470,7 +470,7 @@ dpdk_virtio_to_vm_flush(void *arg)
 
             buf_addr = vr_dpdk_guest_phys_to_host_virt(vq, desc->addr);
             if (buf_addr == NULL) {
-                vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_INTERFACE_DROP);
+                vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_DEQUEUE_FAIL);
                 continue;
             }
 
@@ -495,7 +495,7 @@ dpdk_virtio_to_vm_flush(void *arg)
      * post receive buffers soon enough.
      */
     for (; i < vq->vdv_tx_mbuf_count; i++) {
-        vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_INTERFACE_DROP);
+        vr_dpdk_pfree(vq->vdv_tx_mbuf[i], VP_DROP_DEQUEUE_FAIL);
     }
 
     vq->vdv_tx_mbuf_count = 0;
@@ -795,8 +795,9 @@ vr_dpdk_virtio_enq_pkts_to_phys_lcore(struct vr_dpdk_queue *rx_queue,
     for (i = 0; i < nb_enq; i++)
         stats->vis_enqpackets++;
 
-    for ( ; nb_enq < npkts; nb_enq++)
-        vr_pfree(pkt_arr[nb_enq], VP_DROP_RING_BURST_FAIL);
+    for ( ; nb_enq < npkts; nb_enq++) {
+        vr_pfree(pkt_arr[nb_enq], VP_DROP_ENQUEUE_FAIL);
+    }
 
     return;
 }

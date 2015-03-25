@@ -189,10 +189,8 @@ vr_interface_print_header(void)
 
     printf("Vrouter Interface Table\n\n");
 
-    if (lcore == -1)
-        printf("Statistics for all lcores\n\n");
-    else
-        printf("Statistics for lcore %d\n\n", lcore);
+    if (stats_set && lcore != -1)
+        printf("Statistics for core %d\n\n", lcore);
 
     if (stats_set)
         return;
@@ -346,7 +344,7 @@ vr_interface_req_process(void *s)
             req->vifr_opackets,
             req->vifr_obytes, req->vifr_oerrors);
 
-    if (req->vifr_type == VIF_TYPE_VIRTUAL) {
+    if (platform == DPDK_PLATFORM) {
         vr_interface_print_head_space();
         printf("Enqueued packets:%" PRId64"  Dequeued packets:%" PRId64 "  \n",
                 req->vifr_enqpackets, req->vifr_deqpackets);

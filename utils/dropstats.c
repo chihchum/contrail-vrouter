@@ -48,11 +48,6 @@ vr_drop_stats_req_process(void *s_req)
 {
     vr_drop_stats_req *stats = (vr_drop_stats_req *)s_req;
 
-    if (stats->vds_lcore == -1)
-        printf("Dropstats for all lcores:\n\n");
-    else
-        printf("Dropstats for lcore %d:\n\n", stats->vds_lcore);
-
     printf("GARP                          %" PRIu64 "\n",
             stats->vds_garp_from_vm);
     printf("ARP no where to go            %" PRIu64 "\n",
@@ -71,6 +66,10 @@ vr_drop_stats_req_process(void *s_req)
             stats->vds_interface_drop);
     printf("IF RX Discard                 %" PRIu64 "\n",
             stats->vds_interface_rx_discard);
+    printf("Packet Enqueue Fail           %" PRIu64 "\n",
+            stats->vds_enqueue_fail);
+    printf("Packet Dequeue Fail           %" PRIu64 "\n",
+            stats->vds_dequeue_fail);
     printf("\n");
 
     printf("Flow Unusable                 %" PRIu64 "\n",
@@ -89,16 +88,6 @@ vr_drop_stats_req_process(void *s_req)
             stats->vds_flow_invalid_protocol);
     printf("Flow Queue Limit Exceeded     %" PRIu64 "\n",
             stats->vds_flow_queue_limit_exceeded);
-    printf("\n");
-
-    printf("Ring Limit Exceeded           %" PRIu64 "\n",
-            stats->vds_ring_limit_exceeded);
-    printf("Ring Burst Fail               %" PRIu64 "\n",
-            stats->vds_ring_burst_fail);
-    printf("\n");
-
-    printf("Vhost Burst Fail              %" PRIu64 "\n",
-            stats->vds_vhost_burst_fail);
     printf("\n");
 
     printf("Discards                      %" PRIu64 "\n",

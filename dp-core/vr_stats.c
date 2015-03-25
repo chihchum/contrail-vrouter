@@ -65,9 +65,8 @@ vr_drop_stats_fill_response(vr_drop_stats_req *response,
     response->vds_arp_no_route = stats->vds_arp_no_route;
     response->vds_l2_no_route = stats->vds_l2_no_route;
     response->vds_arp_reply_no_route = stats->vds_arp_reply_no_route;
-    response->vds_ring_limit_exceeded = stats->vds_ring_limit_exceeded;
-    response->vds_vhost_burst_fail = stats->vds_vhost_burst_fail;
-    response->vds_ring_burst_fail = stats->vds_ring_burst_fail;
+    response->vds_enqueue_fail = stats->vds_enqueue_fail;
+    response->vds_dequeue_fail = stats->vds_dequeue_fail;
 
     return;
 }
@@ -153,10 +152,8 @@ vr_drop_stats_get(short lcore)
             stats->vds_l2_no_route += stats_block->vds_l2_no_route;
             stats->vds_arp_reply_no_route +=
                 stats_block->vds_arp_reply_no_route;
-            stats->vds_ring_limit_exceeded +=
-                stats_block->vds_ring_limit_exceeded;
-            stats->vds_vhost_burst_fail += stats_block->vds_vhost_burst_fail;
-            stats->vds_ring_burst_fail += stats_block->vds_ring_burst_fail;
+            stats->vds_enqueue_fail += stats_block->vds_enqueue_fail;
+            stats->vds_dequeue_fail += stats_block->vds_dequeue_fail;
         }
     } else {
         stats_block = (struct vr_drop_stats *)router->vr_pdrop_stats[lcore];
@@ -211,9 +208,9 @@ vr_drop_stats_get(short lcore)
         stats->vds_l2_no_route = stats_block->vds_l2_no_route;
         stats->vds_arp_reply_no_route =
             stats_block->vds_arp_reply_no_route;
-        stats->vds_ring_limit_exceeded = stats_block->vds_ring_limit_exceeded;
-        stats->vds_vhost_burst_fail = stats_block->vds_vhost_burst_fail;
-        stats->vds_ring_burst_fail = stats_block->vds_ring_burst_fail;
+        stats->vds_enqueue_fail = stats_block->vds_enqueue_fail;
+        stats->vds_dequeue_fail = stats_block->vds_dequeue_fail;
+
     }
 
     response->vds_lcore = lcore;
