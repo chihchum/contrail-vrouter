@@ -46,6 +46,8 @@ static short lcore = -1;
 void
 vr_drop_stats_req_process(void *s_req)
 {
+    int platform = get_platform();
+
     vr_drop_stats_req *stats = (vr_drop_stats_req *)s_req;
 
     printf("GARP                          %" PRIu64 "\n",
@@ -66,10 +68,12 @@ vr_drop_stats_req_process(void *s_req)
             stats->vds_interface_drop);
     printf("IF RX Discard                 %" PRIu64 "\n",
             stats->vds_interface_rx_discard);
-    printf("Packet Enqueue Fail           %" PRIu64 "\n",
-            stats->vds_enqueue_fail);
-    printf("Packet Dequeue Fail           %" PRIu64 "\n",
-            stats->vds_dequeue_fail);
+    if (platform == DPDK_PLATFORM) {
+        printf("Packet Enqueue Fail           %" PRIu64 "\n",
+                stats->vds_enqueue_fail);
+        printf("Packet Dequeue Fail           %" PRIu64 "\n",
+                stats->vds_dequeue_fail);
+    }
     printf("\n");
 
     printf("Flow Unusable                 %" PRIu64 "\n",
