@@ -248,7 +248,8 @@ extern void vif_set_xconnect(struct vr_interface *);
 extern void vif_remove_xconnect(struct vr_interface *);
 extern int vif_xconnect(struct vr_interface *, struct vr_packet *,
         struct vr_forwarding_md *);
-extern void vif_drop_pkt(struct vr_interface *, struct vr_packet *, bool);
+extern void vif_drop_pkt(struct vr_interface *, struct vr_packet *, bool,
+        unsigned short);
 extern int vif_vrf_table_get(struct vr_interface *, vr_vrf_assign_req *);
 extern unsigned int vif_vrf_table_get_nh(struct vr_interface *, unsigned short);
 extern int vif_vrf_table_set(struct vr_interface *, unsigned int,

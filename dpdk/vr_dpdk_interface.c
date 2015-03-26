@@ -809,7 +809,7 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
     } else {
         RTE_LOG(DEBUG, VROUTER,"%s: error TXing to interface %s: no queue for lcore %u\n",
                 __func__, vif->vif_name, lcore_id);
-        vif_drop_pkt(vif, vr_dpdk_mbuf_to_pkt(m), 0);
+        vif_drop_pkt(vif, vr_dpdk_mbuf_to_pkt(m), 0, VP_DROP_ENQUEUE_FAIL;
         return -1;
     }
 
@@ -859,7 +859,7 @@ dpdk_if_rx(struct vr_interface *vif, struct vr_packet *pkt)
     } else {
         RTE_LOG(DEBUG, VROUTER,"%s: error TXing to interface %s: no queue for lcore %u\n",
                 __func__, vif->vif_name, lcore_id);
-        vif_drop_pkt(vif, vr_dpdk_mbuf_to_pkt(m), 0);
+        vif_drop_pkt(vif, vr_dpdk_mbuf_to_pkt(m), 0, VP_DROP_ENQUEUE_FAIL);
         return -1;
     }
 

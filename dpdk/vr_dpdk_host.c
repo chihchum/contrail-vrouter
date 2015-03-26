@@ -134,19 +134,13 @@ static void
 dpdk_pfree(struct vr_packet *pkt, unsigned short reason)
 {
     struct vrouter *router = vrouter_get(0);
-    struct vr_interface_stats *stats = vif_get_stats(pkt->vp_if, pkt->vp_cpu);
 
     if (!pkt)
         rte_panic("Null packet");
 
-    if (router) {
+    if (router) 
         ((uint64_t *)(router->vr_pdrop_stats[pkt->vp_cpu]))[reason]++;
 
-        if (reason == VP_DROP_ENQUEUE_FAIL)
-            stats->vis_enqerrors++;
-        else if (reason == VP_DROP_DEQUEUE_FAIL)
-            stats->vis_deqerrors++;
-    }
 
     rte_pktmbuf_free(vr_dpdk_pkt_to_mbuf(pkt));
 

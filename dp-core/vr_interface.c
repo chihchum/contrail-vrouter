@@ -66,7 +66,8 @@ vif_discard_rx(struct vr_interface *vif, struct vr_packet *pkt,
 }
 
 void
-vif_drop_pkt(struct vr_interface *vif, struct vr_packet *pkt, bool input)
+vif_drop_pkt(struct vr_interface *vif, struct vr_packet *pkt, bool input,
+        unsigned short reason)
 {
     struct vr_interface_stats *stats = vif_get_stats(vif, pkt->vp_cpu);
 
@@ -74,7 +75,13 @@ vif_drop_pkt(struct vr_interface *vif, struct vr_packet *pkt, bool input)
         stats->vis_ierrors++;
     else
         stats->vis_oerrors++;
-    vr_pfree(pkt, VP_DROP_INTERFACE_DROP);
+
+    if (reason == VP_DROP_ENQUEUE_FAIL)
+        stats->vis_enqerrors++;
+    else if (reason == VP_DROP_DEQUEUE_FAIL)
+        stats->vis_deqerrors++;
+
+    vr_pfree(pkt, reason);
     return;
 }
 
@@ -222,7 +229,7 @@ vif_xconnect(struct vr_interface *vif, struct vr_packet *pkt,
 
 free_pkt:
     if (vif)
-        vif_drop_pkt(vif, pkt, 1);
+        vif_drop_pkt(vif, pkt, 1, VP_DROP_INTERFACE_DROP);
     return 0;
 }
 
