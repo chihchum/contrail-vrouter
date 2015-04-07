@@ -344,7 +344,7 @@ vr_interface_req_process(void *s)
             req->vifr_opackets,
             req->vifr_obytes, req->vifr_oerrors);
 
-    if (platform == DPDK_PLATFORM) {
+    if (platform == DPDK_PLATFORM && req->vifr_type != VIF_TYPE_PHYSICAL) {
         vr_interface_print_head_space();
         printf("Enqueued packets:%" PRId64"  Enqueue errors:%" PRId64 "  \n",
                 req->vifr_enqpackets, req->vifr_enqerrors);
