@@ -35,7 +35,7 @@
 #define RTE_LOGTYPE_USOCK           RTE_LOGTYPE_USER2
 #define RTE_LOGTYPE_UVHOST          RTE_LOGTYPE_USER3
 #undef RTE_LOG_LEVEL
-#define RTE_LOG_LEVEL               RTE_LOG_INFO
+#define RTE_LOG_LEVEL               RTE_LOG_DEBUG
 
 /*
  * Debug options:

@@ -290,6 +290,7 @@ dpdk_virtio_from_vm_rx(void *arg, struct rte_mbuf **pkts, uint32_t max_pkts)
     char *pkt_addr;
     struct rte_mbuf *mbuf;
     uint32_t pkt_len;
+    uint64_t mbuf_flags; 
 
     if (vq->vdv_ready_state == VQ_NOT_READY) {
         DPDK_UDEBUG(VROUTER, &vq->vdv_hash, "%s: queue %p is not ready\n",
@@ -320,6 +321,11 @@ dpdk_virtio_from_vm_rx(void *arg, struct rte_mbuf **pkts, uint32_t max_pkts)
                              (vq->vdv_vvs.num - 1);
         next_desc_idx = vq->vdv_avail->ring[next_avail_idx];
         desc = &vq->vdv_desc[next_desc_idx];
+
+        mbuf_flags = 0;
+        pkt_addr = vr_dpdk_guest_phys_to_host_virt(vq, desc->addr);
+        if (((struct virtio_net_hdr *)pkt_addr)->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)
+            mbuf_flags |= PKT_TX_IP_CKSUM;
 
         /*
          * Ignore virtio header in first descriptor as we don't support
@@ -357,6 +363,7 @@ dpdk_virtio_from_vm_rx(void *arg, struct rte_mbuf **pkts, uint32_t max_pkts)
             if (mbuf != NULL) {
                 mbuf->pkt.data_len = pkt_len;
                 mbuf->pkt.pkt_len = pkt_len;
+                mbuf->ol_flags |= mbuf_flags;
 
                 rte_memcpy(mbuf->pkt.data, pkt_addr, pkt_len);
                 pkts[pkts_sent] = mbuf;
