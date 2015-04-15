@@ -74,7 +74,9 @@ vr_uvhost_del_fd(int fd, uvh_fd_type_t fd_type)
     }
 
     if (i == MAX_UVHOST_FDS) {
-        vr_uvhost_log("Error deleting FD %d: not found\n", fd);
+        /* The descriptor could be deleted on read error, so no need to
+         * print the error message.
+         */
         return -1;
     }
 
