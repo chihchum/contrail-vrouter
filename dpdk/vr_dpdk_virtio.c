@@ -408,6 +408,8 @@ dpdk_virtio_from_vm_rx_new(void *arg, struct rte_mbuf **pkts, uint32_t count)
     uint32_t i;
     uint16_t free_entries, entry_success = 0;
     uint16_t avail_idx;
+    uint64_t mbuf_flags;
+    struct virtio_net_hdr *vhdr;
 
     struct rte_mempool *mbuf_pool = vr_dpdk_virtio_get_mempool();
 
@@ -453,6 +455,12 @@ dpdk_virtio_from_vm_rx_new(void *arg, struct rte_mbuf **pkts, uint32_t count)
         uint8_t alloc_err = 0;
 
         desc = &vq->vdv_desc[head[entry_success]];
+
+        mbuf_flags = 0;
+        vhdr = (struct virtio_net_hdr *)vr_dpdk_guest_phys_to_host_virt(vq,
+            desc->addr);
+        if (vhdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)
+            mbuf_flags |= PKT_TX_IP_CKSUM;
 
         /* Discard first buffer as it is the virtio header */
         desc = &vq->vdv_desc[desc->next];
@@ -579,6 +587,7 @@ dpdk_virtio_from_vm_rx_new(void *arg, struct rte_mbuf **pkts, uint32_t count)
             break;
 
         m->pkt.nb_segs = seg_num;
+        m->ol_flags |= mbuf_flags;
 
         pkts[entry_success] = m;
         vq->vdv_last_used_idx++;
