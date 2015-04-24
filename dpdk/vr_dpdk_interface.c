@@ -28,6 +28,7 @@
 #include "vr_dpdk_cksum.h"
 
 #include <rte_errno.h>
+#include <rte_byteorder.h>
 
 /*
  * dpdk_virtual_if_add - add a virtual (virtio) interface to vrouter.
@@ -733,6 +734,8 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
     struct vr_dpdk_queue *tx_queue = &lcore->lcore_tx_queues[vif_idx];
     struct vr_dpdk_queue *monitoring_tx_queue;
     struct vr_packet *p_clone;
+    struct ether_hdr *oh, *nh;
+    struct vlan_hdr *vh;
     int ret;
 
     RTE_LOG(DEBUG, VROUTER,"%s: TX packet to interface %s\n", __func__,
@@ -743,6 +746,24 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
     m->pkt.data_len = pkt_head_len(pkt);
     /* TODO: use pkt_len instead? */
     m->pkt.pkt_len = pkt_head_len(pkt);
+
+    /* Inject ethertype and vlan tag. Tag is hardcoded to 20 (0x0014),
+     * as this is just a proof of concept.
+     *
+     * Tag only packets that are going to be send to the physical interface
+     * to allow data transfer between compute nodes in the specified VLAN.
+     *
+     * TODO: VLAN tag needs to be adjustable by user. If vRouter is not supposed
+     * to work in VLAN, packets should not be tagged.
+     */
+    if (vif->vif_type == VIF_TYPE_PHYSICAL) {
+        oh = rte_pktmbuf_mtod(m, struct ether_hdr *);
+        nh = (struct ether_hdr *)rte_pktmbuf_prepend(m, sizeof(struct vlan_hdr));
+        memmove(nh, oh, 2 * ETHER_ADDR_LEN);
+        nh->ether_type = rte_cpu_to_be_16(ETHER_TYPE_VLAN);
+        vh = (struct vlan_hdr *) (nh + 1);
+        vh->vlan_tci = rte_cpu_to_be_16(0x0014);
+    }
 
     if (unlikely(vif->vif_flags & VIF_FLAG_MONITORED)) {
         monitoring_tx_queue = &lcore->lcore_tx_queues[vr_dpdk.monitorings[vif_idx]];

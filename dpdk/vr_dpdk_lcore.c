@@ -22,6 +22,7 @@
 #include "vr_dpdk.h"
 #include "vr_dpdk_usocket.h"
 #include "vr_dpdk_virtio.h"
+#include <rte_byteorder.h>
 
 /*
  * vr_dpdk_phys_lcore_least_used_get - returns the least used lcore among the
@@ -371,6 +372,7 @@ dpdk_vroute(struct vr_interface *vif, struct rte_mbuf *pkts[VR_DPDK_MAX_BURST_SZ
     struct vr_dpdk_lcore * lcore;
     struct vr_dpdk_queue *monitoring_tx_queue;
     struct vr_packet *p_clone;
+    struct ether_hdr *eh;
 
     RTE_LOG(DEBUG, VROUTER, "%s: RX %" PRIu32 " packet(s) from interface %s\n",
          __func__, nb_pkts, vif->vif_name);
@@ -398,6 +400,18 @@ dpdk_vroute(struct vr_interface *vif, struct rte_mbuf *pkts[VR_DPDK_MAX_BURST_SZ
 
     for (i = 0; i < nb_pkts; i++) {
         mbuf = pkts[i];
+
+        /* Strip VLAN tag if present.
+         *
+         * TODO: if vRouter works in VLAN, it should be checked if the packet
+         * belongs to our VLAN. If it does, thetasg should be stripped. If not
+         * (untagged or another tag), it should be forwarded to the kernel.
+         * If vRouter does not work in VLAN, it should ignore tagged packets.
+         */
+        eh  = rte_pktmbuf_mtod(mbuf, struct ether_hdr *);
+        if (eh->ether_type == rte_cpu_to_be_16(ETHER_TYPE_VLAN))
+            memmove(rte_pktmbuf_adj(mbuf, sizeof(struct vlan_hdr)), eh, 2 * ETHER_ADDR_LEN);
+
 #ifdef VR_DPDK_RX_PKT_DUMP
 #ifdef VR_DPDK_PKT_DUMP_VIF_FILTER
         if (VR_DPDK_PKT_DUMP_VIF_FILTER(vif))
