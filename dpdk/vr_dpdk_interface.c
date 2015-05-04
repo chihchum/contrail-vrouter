@@ -30,6 +30,8 @@
 #include <rte_errno.h>
 #include <rte_byteorder.h>
 
+extern unsigned int dpdk_vlan_tag;
+
 /*
  * dpdk_virtual_if_add - add a virtual (virtio) interface to vrouter.
  * Returns 0 on success, < 0 otherwise.
@@ -689,16 +691,28 @@ dpdk_hw_checksum(struct vr_packet *pkt)
     if (VP_TYPE_IPOIP == pkt->vp_type) {
         /* calculate outer checksum in soft */
         /* TODO: vlan support */
+        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORpkt_to_m(pkt)E dpdk_sw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
         dpdk_sw_checksum_at_offset(pkt,
             pkt->vp_data + sizeof(struct ether_hdr));
+        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_sw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
         /* calculate inner checksum in hardware */
+        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORE dpdk_hw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
         dpdk_hw_checksum_at_offset(pkt,
                pkt_get_inner_network_header_off(pkt));
+        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_hw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
     } else {
         /* normal IP packet */
         /* TODO: vlan support */
+        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORE dpdk_hw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
         dpdk_hw_checksum_at_offset(pkt,
             pkt->vp_data + sizeof(struct ether_hdr));
+        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_hw_checksum_at_offset\n", __func__);
+        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
     }
 }
 
@@ -747,22 +761,22 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
     /* TODO: use pkt_len instead? */
     m->pkt.pkt_len = pkt_head_len(pkt);
 
-    /* Inject ethertype and vlan tag. Tag is hardcoded to 20 (0x0014),
-     * as this is just a proof of concept.
+    /* Inject ethertype and vlan tag.
      *
-     * Tag only packets that are going to be send to the physical interface
+     * Tag only packets that are going to be send to the physical interface,
      * to allow data transfer between compute nodes in the specified VLAN.
      *
-     * TODO: VLAN tag needs to be adjustable by user. If vRouter is not supposed
-     * to work in VLAN, packets should not be tagged.
+     * VLAN tag is adjustable by user with --vlan parameter: see dpdk_vrouter.c.
+     * If vRouter is not supposed to work in VLAN (parameter was not specified),
+     * packets should not be tagged.
      */
-    if (vif->vif_type == VIF_TYPE_PHYSICAL) {
+    if (dpdk_vlan_tag != VLAN_ID_INVALID && vif->vif_type == VIF_TYPE_PHYSICAL) {
         oh = rte_pktmbuf_mtod(m, struct ether_hdr *);
         nh = (struct ether_hdr *)rte_pktmbuf_prepend(m, sizeof(struct vlan_hdr));
         memmove(nh, oh, 2 * ETHER_ADDR_LEN);
         nh->ether_type = rte_cpu_to_be_16(ETHER_TYPE_VLAN);
-        vh = (struct vlan_hdr *) (nh + 1);
-        vh->vlan_tci = rte_cpu_to_be_16(0x0014);
+        vh = (struct vlan_hdr *)(nh + 1);
+        vh->vlan_tci = dpdk_vlan_tag;
     }
 
     if (unlikely(vif->vif_flags & VIF_FLAG_MONITORED)) {
