@@ -614,10 +614,10 @@ dpdk_if_add_tap(struct vr_interface *vif)
 }
 
 static inline void
-dpdk_hw_checksum_at_offset(struct vr_packet *pkt, unsigned offset)
+dpdk_hw_checksum_at_offset(struct rte_mbuf *m, unsigned offset)
 {
-    struct rte_mbuf *m = vr_dpdk_pkt_to_mbuf(pkt);
-    struct vr_ip *iph = (struct vr_ip *)(pkt->vp_head + offset);
+    struct vr_ip *iph = (struct vr_ip *)(rte_pktmbuf_mtod(m, unsigned char *)
+                            + offset); /* skip to data + some offset */
     unsigned iph_len = iph->ip_hl * 4;
     struct vr_tcp *tcph;
     struct vr_udp *udph;
@@ -654,9 +654,10 @@ dpdk_hw_checksum_at_offset(struct vr_packet *pkt, unsigned offset)
 }
 
 static inline void
-dpdk_sw_checksum_at_offset(struct vr_packet *pkt, unsigned offset)
+dpdk_sw_checksum_at_offset(struct rte_mbuf *m, unsigned offset)
 {
-    struct vr_ip *iph = (struct vr_ip *)pkt_data_at_offset(pkt, offset);
+    struct vr_ip *iph = (struct vr_ip *)(rte_pktmbuf_mtod(m, unsigned char *)
+                            + offset); /* skip to data + some offset */
     unsigned iph_len = iph->ip_hl * 4;
     struct vr_udp *udph;
     struct vr_tcp *tcph;
@@ -666,11 +667,11 @@ dpdk_sw_checksum_at_offset(struct vr_packet *pkt, unsigned offset)
     iph->ip_csum = 0;
 
     if (iph->ip_proto == VR_IP_PROTO_UDP) {
-        udph = (struct vr_udp *)pkt_data_at_offset(pkt, offset + iph_len);
+        udph = (struct vr_udp *)((char *)iph + iph_len);
         /* disable UDP checksum */
         udph->udp_csum = 0;
     } else if (iph->ip_proto == VR_IP_PROTO_TCP){
-        tcph = (struct vr_tcp *)pkt_data_at_offset(pkt, offset + iph_len);
+        tcph = (struct vr_tcp *)((char *)iph + iph_len);
         tcph->tcp_csum = 0;
         /*
          * TODO: rte_ipv4_udptcp_cksum() has been ported from DPDK 1.8.0
@@ -682,59 +683,6 @@ dpdk_sw_checksum_at_offset(struct vr_packet *pkt, unsigned offset)
 
     /* calculate IP checksum */
     iph->ip_csum = vr_ip_csum(iph);
-}
-
-static inline void
-dpdk_hw_checksum(struct vr_packet *pkt)
-{
-    /* if a tunnel */
-    if (VP_TYPE_IPOIP == pkt->vp_type) {
-        /* calculate outer checksum in soft */
-        /* TODO: vlan support */
-        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORpkt_to_m(pkt)E dpdk_sw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-        dpdk_sw_checksum_at_offset(pkt,
-            pkt->vp_data + sizeof(struct ether_hdr));
-        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_sw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-        /* calculate inner checksum in hardware */
-        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORE dpdk_hw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-        dpdk_hw_checksum_at_offset(pkt,
-               pkt_get_inner_network_header_off(pkt));
-        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_hw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-    } else {
-        /* normal IP packet */
-        /* TODO: vlan support */
-        RTE_LOG(INFO, VROUTER,"%s: PACKET BEFORE dpdk_hw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-        dpdk_hw_checksum_at_offset(pkt,
-            pkt->vp_data + sizeof(struct ether_hdr));
-        RTE_LOG(INFO, VROUTER,"%s: PACKET AFTER dpdk_hw_checksum_at_offset\n", __func__);
-        rte_pktmbuf_dump(stdout, vr_dpdk_pkt_to_mbuf(pkt), 0x60);
-    }
-}
-
-
-static inline void
-dpdk_sw_checksum(struct vr_packet *pkt)
-{
-    /* if a tunnel */
-    if (VP_TYPE_IPOIP == pkt->vp_type) {
-        /* calculate outer checksum */
-        /* TODO: vlan support */
-        dpdk_sw_checksum_at_offset(pkt,
-            pkt->vp_data + sizeof(struct ether_hdr));
-        /* calculate inner checksum */
-        dpdk_sw_checksum_at_offset(pkt,
-               pkt_get_inner_network_header_off(pkt));
-    } else {
-        /* normal IP packet */
-        /* TODO: vlan support */
-        dpdk_sw_checksum_at_offset(pkt,
-            pkt->vp_data + sizeof(struct ether_hdr));
-    }
 }
 
 /* TX packet callback */
@@ -760,24 +708,6 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
     m->pkt.data_len = pkt_head_len(pkt);
     /* TODO: use pkt_len instead? */
     m->pkt.pkt_len = pkt_head_len(pkt);
-
-    /* Inject ethertype and vlan tag.
-     *
-     * Tag only packets that are going to be send to the physical interface,
-     * to allow data transfer between compute nodes in the specified VLAN.
-     *
-     * VLAN tag is adjustable by user with --vlan parameter: see dpdk_vrouter.c.
-     * If vRouter is not supposed to work in VLAN (parameter was not specified),
-     * packets should not be tagged.
-     */
-    if (dpdk_vlan_tag != VLAN_ID_INVALID && vif->vif_type == VIF_TYPE_PHYSICAL) {
-        oh = rte_pktmbuf_mtod(m, struct ether_hdr *);
-        nh = (struct ether_hdr *)rte_pktmbuf_prepend(m, sizeof(struct vlan_hdr));
-        memmove(nh, oh, 2 * ETHER_ADDR_LEN);
-        nh->ether_type = rte_cpu_to_be_16(ETHER_TYPE_VLAN);
-        vh = (struct vlan_hdr *)(nh + 1);
-        vh->vlan_tci = dpdk_vlan_tag;
-    }
 
     if (unlikely(vif->vif_flags & VIF_FLAG_MONITORED)) {
         monitoring_tx_queue = &lcore->lcore_tx_queues[vr_dpdk.monitorings[vif_idx]];
@@ -820,22 +750,59 @@ dpdk_if_tx(struct vr_interface *vif, struct vr_packet *pkt)
      */
     if (unlikely(pkt->vp_flags & VP_FLAG_CSUM_PARTIAL)) {
         /* if NIC supports checksum offload */
-        if (likely(vif->vif_flags & VIF_FLAG_TX_CSUM_OFFLOAD))
-            dpdk_hw_checksum(pkt);
-        else
-            dpdk_sw_checksum(pkt);
+        if (likely(vif->vif_flags & VIF_FLAG_TX_CSUM_OFFLOAD)) {
+            /* if a tunnel */
+            if (VP_TYPE_IPOIP == pkt->vp_type) {
+                /* calculate outer checksum in soft */
+                dpdk_sw_checksum_at_offset(m, sizeof(struct ether_hdr));
+                /* calculate inner checksum in hardware */
+                /* outer ethernet header + outer ip header + mpls label +
+                 * udp header + inner ethernet header. Next struct is ip header.
+                 */
+                dpdk_hw_checksum_at_offset(m, sizeof(struct ether_hdr) + 
+                            sizeof(struct vr_ip) + 4 + sizeof(struct vr_udp) +
+                            sizeof(struct ether_hdr));
+            } else {
+                /* normal IP packet */
+                dpdk_hw_checksum_at_offset(m, sizeof(struct ether_hdr));
+            }
+        } else {
+            if (VP_TYPE_IPOIP == pkt->vp_type) {
+                /* calculate outer checksum */
+                dpdk_sw_checksum_at_offset(m, sizeof(struct ether_hdr));
+                /* calculate inner checksum */
+                dpdk_sw_checksum_at_offset(m, sizeof(struct ether_hdr) + 
+                            sizeof(struct vr_ip) + 4 + sizeof(struct vr_udp) +
+                            sizeof(struct ether_hdr));
+            } else {
+                dpdk_sw_checksum_at_offset(m, sizeof(struct ether_hdr));
+            }
+        }
     } else if (likely(VP_TYPE_IPOIP == pkt->vp_type)) {
         /* always calculate outer checksum for tunnels */
-        /* if NIC supports checksum offload */
         if (likely(vif->vif_flags & VIF_FLAG_TX_CSUM_OFFLOAD)) {
-            /* TODO: vlan support */
-            dpdk_hw_checksum_at_offset(pkt,
-                pkt->vp_data + sizeof(struct ether_hdr));
+            dpdk_hw_checksum_at_offset(m, sizeof(struct ether_hdr));
         } else {
-            /* TODO: vlan support */
-            dpdk_sw_checksum_at_offset(pkt,
-                pkt->vp_data + sizeof(struct ether_hdr));
+            dpdk_sw_checksum_at_offset(m, sizeof(struct ether_hdr));
         }
+    }
+
+    /* Inject ethertype and vlan tag.
+     *
+     * Tag only packets that are going to be send to the physical interface,
+     * to allow data transfer between compute nodes in the specified VLAN.
+     *
+     * VLAN tag is adjustable by user with --vlan parameter: see dpdk_vrouter.c.
+     * If vRouter is not supposed to work in VLAN (parameter was not specified),
+     * packets should not be tagged.
+     */
+    if (dpdk_vlan_tag != VLAN_ID_INVALID && vif_is_fabric(vif)) {
+        oh = rte_pktmbuf_mtod(m, struct ether_hdr *);
+        nh = (struct ether_hdr *)rte_pktmbuf_prepend(m, sizeof(struct vlan_hdr));
+        memmove(nh, oh, 2 * ETHER_ADDR_LEN);
+        nh->ether_type = rte_cpu_to_be_16(ETHER_TYPE_VLAN);
+        vh = (struct vlan_hdr *)(nh + 1);
+        vh->vlan_tci = dpdk_vlan_tag;
     }
 
 #ifdef VR_DPDK_TX_PKT_DUMP
